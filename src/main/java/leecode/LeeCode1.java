@@ -12,16 +12,15 @@ public class LeeCode1 {
         int[] nums = new int[]{2, 7, 11, 15};
         int[] ans = new LeeCode1().towSums(nums, 9);
 
-        Arrays.stream(ans).forEach(num -> System.out.println(num));
+        Arrays.stream(ans).forEach(System.out::println);
     }
-
 
     public int[] towSums(int[] nums, int target){
         var map = new HashMap<Integer, Integer>();
         int diff;
         for(int i = 0; i < nums.length; i ++){
             diff = target - nums[i];
-            if(map != null && map.get(diff) != null){
+            if(map.get(diff) != null){
                 return new int[]{map.get(diff), i};
             }
             map.put(nums[i], i);
