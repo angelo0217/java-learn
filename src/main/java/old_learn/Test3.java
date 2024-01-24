@@ -1,3 +1,5 @@
+package old_learn;
+
 public class Test3 {
     public static void main(String[] args){
         String[] strings = new String[]{"flower", "flow", "floor"};

@@ -1,3 +1,5 @@
+package leecode;
+
 public class LeeCode944 {
 
     public static void main(String[] args) {

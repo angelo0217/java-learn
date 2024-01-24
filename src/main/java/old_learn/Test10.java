@@ -1,3 +1,5 @@
+package old_learn;
+
 public class Test10 {
 
     public static void main(String[] args) {

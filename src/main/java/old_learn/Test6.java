@@ -1,3 +1,5 @@
+package old_learn;
+
 import java.util.Arrays;
 
 public class Test6 {

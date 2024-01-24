@@ -1,3 +1,5 @@
+package old_learn;
+
 public class Test8 {
     /*
     無法非常理解題目，真的滿怪的
