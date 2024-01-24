@@ -18,10 +18,16 @@ public class FluxDemo {
         Flux.range(1, 7)
 //                .log()
                 .filter(i -> i >3)
-//                .log()
-                .map(i -> "haha-" + i)
-                .log()
-                .subscribe(System.out::println);
+                .map(i -> {
+//                    if(i == 6)
+//                        throw new RuntimeException("123");
+                    return "haha-" + i;
+                })
+                .subscribe(
+                        v -> System.out.println("c: "+ v),
+                        throwable -> System.out.println("error: " + throwable),
+                        () -> System.out.println("flow end")
+                );
     }
 
     /**
