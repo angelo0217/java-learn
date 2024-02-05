@@ -11,20 +11,98 @@ import java.time.Duration;
 
 public class FluxDemo {
 
-    public static void main(String[] args) {
+    static class MySubscribe<T> extends BaseSubscriber<T> {
+        @Override
+        protected void hookOnSubscribe(Subscription subscription) {
+            System.out.println("hookOnSubscribe " + subscription);
+            request(1);
+//                requestUnbounded(); //要數據最大值，則不需再 on next 加上 request
+        }
+
+        @Override
+        protected void hookOnNext(T value) {
+            System.out.println("hookOnNext: " + value);
+
+            if (value instanceof Integer) {
+                if ((Integer) value == 1) {
+                    cancel(); //主動取消流
+//                    throw new RuntimeException("haha");
+                }
+            }
+
+//            cancel(); 主動取消流
+            request(1);
+        }
+
+        @Override
+        protected void hookOnComplete() {
+            System.out.println("hookOnComplete");
+        }
+
+        @Override
+        protected void hookOnError(Throwable throwable) {
+            System.out.println("hookOnCancel");
+        }
+
+        @Override
+        protected void hookOnCancel() {
+            System.out.println("hookOnCancel");
+        }
+
+        @Override
+        protected void hookFinally(SignalType type) {
+            System.out.println("hookFinally------");
+        }
+    }
+
+    public static void main(String[] args) throws IOException {
+//        flaxDoOn();
+        Flux<String> flow = Flux.range(1, 10)
+                .flatMap(i -> {
+                    System.out.println("flatMap ..." + i);
+                    //可針對單筆資料改程流回傳，最一個若有錯誤替代值的方式
+                    return Mono.just(i)
+                            .map(value -> {
+                                if (value == 8) {
+                                    throw new RuntimeException("Error at " + value);
+                                }
+                                return "haha" + value;
+                            })
+                            .onErrorResume(error -> {
+                                return Mono.just("haha error"); // 替代值
+                            });
+                })
+//                .onErrorComplete()//流錯誤時，把錯誤吃掉，轉為正常訊號
+//                .onErrorContinue((error, value) -> { // 跳過錯誤的那筆
+//                    System.err.println("Error occurred: " + error.getMessage());
+//                    System.err.println("Continuing with default value: haha1");
+//                })
+//                .onErrorResume(error -> { // 替換錯誤那筆，並結束
+//                    System.err.println("onErrorResume: " + error.getMessage());
+//                    return Mono.just("11111"); // 替換為可識別的值
+//                })
+//                .onErrorReturn("9"); // 替代值
+                ;
+
+
+        flow.subscribe(new MySubscribe<String>());
+    }
+
+
+    public static void baseDemo() {
 //        Flux.concat(Flux.just(1, 2, 3), Flux.just(7, 8, 9))
 //                .subscribe(System.out::println);
 
         Flux.range(1, 7)
 //                .log()
-                .filter(i -> i >3)
+                .filter(i -> i > 3)
                 .map(i -> {
 //                    if(i == 6)
 //                        throw new RuntimeException("123");
                     return "haha-" + i;
                 })
                 .subscribe(
-                        v -> System.out.println("c: "+ v),
+                        v -> System.out.println("c: " + v),
                         throwable -> System.out.println("error: " + throwable),
                         () -> System.out.println("flow end")
                 );
@@ -33,17 +111,17 @@ public class FluxDemo {
     /**
      * 信號 正常/異常
      * SignalType:
-     *  SUBSCRIBE: 被訂閱
-     *  REQUEST: 被求了N個元素
-     *  CANCEL
-     *  ON_SUBSCRIBE
-     *  ON_NEXT
-     *  ON_ERROR
-     *  ON_COMPLETE
-     *  AFTER_TERMINATE 中斷以後
-     *  CURRENT_CONTEXT 當前上下文
-     *  ON_CONTEXT 感知上下文
-     *
+     * SUBSCRIBE: 被訂閱
+     * REQUEST: 被求了N個元素
+     * CANCEL
+     * ON_SUBSCRIBE
+     * ON_NEXT
+     * ON_ERROR
+     * ON_COMPLETE
+     * AFTER_TERMINATE 中斷以後
+     * CURRENT_CONTEXT 當前上下文
+     * ON_CONTEXT 感知上下文
+     * <p>
      * doOnNext 每個元素(流的數據)到達後觸發
      * doOnEach 每個元素(流的數據和信號) 到達後觸發
      * doOnRequest 校費者請求流元素
@@ -60,8 +138,8 @@ public class FluxDemo {
         Flux.just(1, 2, 3, 4, 5, 6, 7, 0, 11, 23)
                 .doOnNext(integer -> System.out.println("1 ele: " + integer)) //放前面，不會跑map
                 .doOnEach(integerSignal -> System.out.println("doOnEach.." + integerSignal)) //each 封裝的詳細
-                .map(integer -> 10/integer)
-                .doOnError(throwable -> System.out.println("keep error "+ throwable))
+                .map(integer -> 10 / integer)
+                .doOnError(throwable -> System.out.println("keep error " + throwable))
                 .doOnNext(integer -> System.out.println("ele: " + integer))//後面會跑map
                 .subscribe(System.out::println);
     }
@@ -83,47 +161,10 @@ public class FluxDemo {
                 }).doOnCancel(() -> {
                     System.out.println("flow 取消了");
                 }).doOnError(throwable -> {
-                    System.out.println("流出錯了: "+ throwable);
+                    System.out.println("流出錯了: " + throwable);
                 }).doOnNext(integer -> System.out.println("next: " + integer))
         ;
-        flow.subscribe(new BaseSubscriber<Integer>() {
-            @Override
-            protected void hookOnSubscribe(Subscription subscription) {
-                System.out.println("hookOnSubscribe " + subscription);
-                request(1);
-            }
-
-            @Override
-            protected void hookOnNext(Integer value) {
-                System.out.println("hookOnNext" + value);
-                if(value < 5)
-                    request(1);
-                else
-                    cancel();
-
-                if (value == 3) throw new RuntimeException("haha");
-            }
-
-            @Override
-            protected void hookOnComplete() {
-                System.out.println("hookOnComplete");
-            }
-
-            @Override
-            protected void hookOnError(Throwable throwable) {
-                System.out.println("hookOnCancel");
-            }
-
-            @Override
-            protected void hookOnCancel() {
-                System.out.println("hookOnCancel");
-            }
-
-            @Override
-            protected void hookFinally(SignalType type) {
-                System.out.println("hookFinally");
-            }
-        });
+        flow.subscribe(new MySubscribe<Integer>());
 
         System.in.read();
     }
